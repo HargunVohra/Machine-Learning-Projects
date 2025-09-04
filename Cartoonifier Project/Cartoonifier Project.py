@@ -1,0 +1,77 @@
+import cv2
+import easygui
+import numpy as np
+import imageio
+import sys
+import matplotlib.pyplot as plt
+import os
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import *
+from PIL import ImageTk, Image
+
+top = tk.Tk()
+top.geometry("400x400")
+top.title("Catoonify Your Image!")
+top.configure(background="white")
+label = Label(top, background="#CDCDCD", font=("Calibri", 20, "bold"))
+
+def upload():
+    ImagePath = easygui.fileopenbox()
+    cartoonify(ImagePath)
+
+def cartoonify(ImagePath):
+    OriginalImage = cv2.imread(ImagePath)
+    OriginalImage = cv2.cvtColor(OriginalImage, cv2.COLOR_BGR2RGB)
+
+    if OriginalImage is None:
+        print("Can not find any image. Choose appropriate file!")
+        sys.exit()
+
+    ReSized1 = OriginalImage  
+
+    grayScaleImage = cv2.cvtColor(OriginalImage, cv2.COLOR_BGR2GRAY)
+    ReSized2 = grayScaleImage  
+
+    smoothGrayScale = cv2.medianBlur(grayScaleImage, 5)
+    ReSized3 = smoothGrayScale  
+
+    getEdge = cv2.adaptiveThreshold(smoothGrayScale, 255,
+        cv2.ADAPTIVE_THRESH_MEAN_C,
+        cv2.THRESH_BINARY, 9, 9)
+
+    ReSized4 = getEdge
+
+    ColorImage = cv2.bilateralFilter(OriginalImage, 9, 300, 300)
+    ReSized5 = ColorImage  
+    CartoonImage = cv2.bitwise_and(ColorImage, ColorImage, mask=getEdge)
+
+    ReSized6 = CartoonImage  
+    Images = [ReSized1, ReSized2, ReSized3, ReSized4, ReSized5, ReSized6]
+
+    fig, axes = plt.subplots(3, 2, figsize=(8, 8))
+    fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.1, hspace=0.1)
+    for i, ax in enumerate(axes.flat):
+        ax.imshow(Images[i], cmap='gray')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    save1 = Button(top, text="Save cartoon image", command=lambda: save(ReSized6, ImagePath), padx=30, pady=5)
+    save1.configure(background='#364156', foreground='white', font=('calibri', 10, 'bold'))
+    save1.pack(side=TOP, pady=50)
+
+    plt.show()
+
+def save(ReSized6, ImagePath):
+    newName = "Cartoonified_Image"
+    path1 = os.path.dirname(ImagePath)
+    extension = os.path.splitext(ImagePath)[1]
+    path = os.path.join(path1, newName + extension)
+    cv2.imwrite(path, cv2.cvtColor(ReSized6, cv2.COLOR_RGB2BGR))
+    I = "Image saved by name " + newName + " at " + path
+    tk.messagebox.showinfo(title=None, message=I)
+
+upload = Button(top, text="Cartoonify an Image", command=upload, padx=10, pady=5)
+upload.configure(background='#364156', foreground='white', font=('calibri', 10, 'bold'))
+upload.pack(side=TOP, pady=50)
+top.mainloop()
